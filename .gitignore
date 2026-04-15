@@ -1,0 +1,8 @@
+huggingface/
+references/
+__pycache__/
+*.pyc
+
+# Keep the presets directory structure, but do not publish bundled or custom voices.
+presets/*
+!presets/.gitkeep
