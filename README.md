@@ -140,6 +140,7 @@ curl -X POST http://localhost:8005/v1/audio/speech \
 - `speed` is applied as a post-processing tempo adjustment in the adapter.
 - The adapter keeps generated audio in memory and returns it directly in the HTTP response.
 - Model and cache files are stored under the mounted Hugging Face cache directory.
+- Required NLTK data is vendored in this repository so the image build does not need to download it from blocked external URLs.
 - If you see a warning about FlashAttention not being installed, the stack can still work, but performance may be lower.
 - Model selection, presets, and quality characteristics ultimately depend on the upstream `MioTTS-Inference` stack and the model you choose.
 
