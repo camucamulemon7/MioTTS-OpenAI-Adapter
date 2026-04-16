@@ -39,6 +39,16 @@ cd MioTTS-openai
 docker build -t miotts-openai-adapter:latest .
 ```
 
+If you build behind an HTTP/HTTPS proxy, pass the proxy environment variables to `docker build`, for example:
+
+```bash
+docker build \
+  --build-arg HTTP_PROXY="$HTTP_PROXY" \
+  --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
+  --build-arg NO_PROXY="$NO_PROXY" \
+  -t miotts-openai-adapter:latest .
+```
+
 ### 2. Run the container
 
 ```bash
@@ -51,7 +61,7 @@ docker run -d \
   -p 8005:8080 \
   -e HF_TOKEN="${HF_TOKEN:-}" \
   -e MIOTTS_MODEL="your-model-id" \
-  -v "$PWD/huggingface:/root/.cache/huggingface" \
+  -v "$PWD/huggingface:/home/app/.cache/huggingface" \
   -v "$PWD/presets:/opt/MioTTS-Inference/presets" \
   miotts-openai-adapter:latest
 ```

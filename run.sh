@@ -28,7 +28,7 @@ docker run -d \
   -e OPENAI_TTS_DEFAULT_RESPONSE_FORMAT="${OPENAI_TTS_DEFAULT_RESPONSE_FORMAT:-mp3}" \
   -e OPENAI_TTS_VOICE_PRESET_MAP_JSON="${OPENAI_TTS_VOICE_PRESET_MAP_JSON:-}" \
   -v "./references:/opt/MioTTS-Inference/references" \
-  -v "${HF_CACHE_DIR}:/root/.cache/huggingface" \
+  -v "${HF_CACHE_DIR}:/home/app/.cache/huggingface" \
   -v "${PRESETS_DIR}:/opt/MioTTS-Inference/presets" \
   "${IMAGE_NAME}"
 
