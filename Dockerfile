@@ -8,11 +8,14 @@ ARG NO_PROXY
 ARG http_proxy
 ARG https_proxy
 ARG no_proxy
+ARG INSTALL_FLASH_ATTN=0
+ARG FLASH_ATTN_MAX_JOBS=4
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     UV_SYSTEM_PYTHON=1 \
+    UV_NATIVE_TLS=1 \
     HTTP_PROXY=${HTTP_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY} \
     NO_PROXY=${NO_PROXY} \
@@ -39,6 +42,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     OPENAI_TTS_MODEL_NAME=miotts-1.7b \
     OPENAI_TTS_DEFAULT_VOICE=jp_female \
     OPENAI_TTS_DEFAULT_RESPONSE_FORMAT=mp3 \
+    INSTALL_FLASH_ATTN=${INSTALL_FLASH_ATTN} \
+    MAX_JOBS=${FLASH_ATTN_MAX_JOBS} \
     HOME=/home/app \
     XDG_CACHE_HOME=/home/app/.cache \
     HF_HOME=/home/app/.cache/huggingface \
@@ -70,15 +75,19 @@ RUN cp -a "${MIOTTS_REPO_DIR}/presets" /opt/miotts-default-presets
 
 WORKDIR /opt/mio-openai-adapter
 
-COPY pyproject.toml README.md openai_tts_adapter.py ./
-COPY vendor/nltk_data/ /usr/local/share/nltk_data/
+COPY pyproject.toml openai_tts_adapter.py ./
+COPY local/nltk_data/ /usr/local/share/nltk_data/
 
 RUN uv pip install --system \
     "pip" \
     "setuptools<81" \
     "wheel" && \
     uv pip install --system . && \
+    if [ "${INSTALL_FLASH_ATTN}" = "1" ]; then \
+        uv pip install --system --no-build-isolation flash-attn; \
+    fi && \
     python3 - <<'PY'
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -92,8 +101,14 @@ for relative_path in (
     "corpora/cmudict.zip",
 ):
     zip_path = package_root / relative_path
+    if not zip_path.exists():
+        raise FileNotFoundError(
+            f"Missing NLTK package archive: {zip_path}. "
+            "Place the required nltk_data files under local/nltk_data/packages before building."
+        )
     target_dir = nltk_data_dir / Path(relative_path).parent
     target_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zip_path, target_dir / Path(relative_path).name)
     with zipfile.ZipFile(zip_path) as zf:
         zf.extractall(target_dir)
 PY
@@ -110,7 +125,7 @@ USER ${APP_UID}:${APP_GID}
 
 EXPOSE 8000 8002 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+HEALTHCHECK --interval=60s --timeout=10s --start-period=120s --retries=5 \
   CMD curl -fsS "http://127.0.0.1:${OPENAI_TTS_PORT}/health" || exit 1
 
 ENTRYPOINT ["/opt/entrypoint.sh"]

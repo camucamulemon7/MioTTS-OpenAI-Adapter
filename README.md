@@ -34,6 +34,13 @@ The adapter also supports:
 
 ### 1. Build the image
 
+Place the required NLTK data archives under `local/nltk_data/packages` before building:
+
+- `local/nltk_data/packages/tokenizers/punkt.zip`
+- `local/nltk_data/packages/tokenizers/punkt_tab.zip`
+- `local/nltk_data/packages/taggers/averaged_perceptron_tagger.zip`
+- `local/nltk_data/packages/corpora/cmudict.zip`
+
 ```bash
 cd MioTTS-openai
 docker build -t miotts-openai-adapter:latest .
@@ -75,6 +82,15 @@ You can add optional environment variables such as:
 -e OPENAI_TTS_MODEL_NAME="miotts" \
 -e OPENAI_TTS_DEFAULT_VOICE="default" \
 -e OPENAI_TTS_DEFAULT_RESPONSE_FORMAT="mp3"
+```
+
+By default, the image does not install `flash-attn`, because building it can be heavy and unstable on some environments. If you want to try it to avoid the slower SDPA fallback in `miocodec`, enable it explicitly with:
+
+```bash
+docker build \
+  --build-arg INSTALL_FLASH_ATTN=1 \
+  --build-arg FLASH_ATTN_MAX_JOBS=4 \
+  -t miotts-openai-adapter:latest .
 ```
 
 If you prefer a helper script for your local environment:
@@ -140,7 +156,7 @@ curl -X POST http://localhost:8005/v1/audio/speech \
 - `speed` is applied as a post-processing tempo adjustment in the adapter.
 - The adapter keeps generated audio in memory and returns it directly in the HTTP response.
 - Model and cache files are stored under the mounted Hugging Face cache directory.
-- Required NLTK data is vendored in this repository so the image build does not need to download it from blocked external URLs.
+- Required NLTK data is expected under `local/nltk_data`, so the image build does not need to download it from blocked external URLs.
 - If you see a warning about FlashAttention not being installed, the stack can still work, but performance may be lower.
 - Model selection, presets, and quality characteristics ultimately depend on the upstream `MioTTS-Inference` stack and the model you choose.
 

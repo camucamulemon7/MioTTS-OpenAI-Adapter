@@ -1,5 +1,6 @@
 huggingface/
 references/
+local/nltk_data/
 __pycache__/
 *.pyc
 
