@@ -39,7 +39,20 @@ Place the required NLTK data archives under `local/nltk_data/packages` before bu
 - `local/nltk_data/packages/tokenizers/punkt.zip`
 - `local/nltk_data/packages/tokenizers/punkt_tab.zip`
 - `local/nltk_data/packages/taggers/averaged_perceptron_tagger.zip`
+- `local/nltk_data/packages/taggers/averaged_perceptron_tagger_eng.zip` (current NLTK English POS tagging)
 - `local/nltk_data/packages/corpora/cmudict.zip`
+
+The archives are available from the official [NLTK data repository](https://github.com/nltk/nltk_data).
+Download them without credentials using the standard-library helper:
+
+```bash
+python3 scripts/prepare_nltk_data.py
+```
+
+The helper uses a fixed official data revision, verifies SHA-256 hashes and ZIP
+integrity, and leaves existing matching files intact. It downloads only build
+inputs under the ignored `local/nltk_data/packages/` directory. The English JSON
+tagger is required by current NLTK in addition to the legacy tagger archive.
 
 ```bash
 cd MioTTS-openai
@@ -177,3 +190,19 @@ Please review the licenses and usage terms of:
 - any presets or reference audio you use
 
 This repository is an adapter layer and does not change the original licensing terms of upstream models or voice assets.
+
+## Adapter regression tests
+
+The tests use synthetic audio, temporary preset directories, and mocked upstream
+HTTP responses. They do not start vLLM or require model downloads, a GPU, tokens,
+or the full inference dependencies. With Python 3.10 or newer:
+
+```bash
+python -m pip install fastapi httpx uvicorn
+python -m unittest discover -s tests -v
+```
+
+FFmpeg on `PATH` enables the optional real audio conversion test; it is already
+installed in the container image. Without FFmpeg, that test is reported as skipped.
+
+To also verify the optional local NLTK data tests, install `nltk` and run the helper before the test command.

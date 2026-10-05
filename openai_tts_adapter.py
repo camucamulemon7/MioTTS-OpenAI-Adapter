@@ -1,5 +1,6 @@
 import argparse
 import base64
+import binascii
 import json
 import math
 import os
@@ -146,7 +147,9 @@ def _transcode(wav_bytes: bytes, target_format: str, speed: float) -> bytes:
     elif target_format == "mp3":
         cmd.extend(["-c:a", "libmp3lame"])
 
-    cmd.extend(["-f", target_format, "pipe:1"])
+    # AAC uses the ADTS muxer; ffmpeg has no output muxer named "aac".
+    muxer = "adts" if target_format == "aac" else target_format
+    cmd.extend(["-f", muxer, "pipe:1"])
 
     proc = subprocess.run(cmd, input=wav_bytes, capture_output=True, check=False)
     if proc.returncode != 0:
@@ -182,6 +185,8 @@ async def speech(request: SpeechRequest) -> Response:
         raise HTTPException(status_code=400, detail="input must not be empty")
 
     target_format = (request.response_format or request.output_format or DEFAULT_RESPONSE_FORMAT).lower()
+    if target_format not in FFMPEG_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Unsupported response_format: {target_format}")
     preset_id = _resolve_preset(request.voice)
     speed = _normalize_speed(request.speed)
 
@@ -203,11 +208,20 @@ async def speech(request: SpeechRequest) -> Response:
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    data = response.json()
     try:
-        wav_bytes = base64.b64decode(data["audio"])
-    except KeyError as exc:
-        raise HTTPException(status_code=502, detail="Upstream response did not include audio") from exc
+        data = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Upstream response was not valid JSON") from exc
+
+    if not isinstance(data, dict) or "audio" not in data:
+        raise HTTPException(status_code=502, detail="Upstream response did not include audio")
+    encoded_audio = data["audio"]
+    if not isinstance(encoded_audio, str) or not encoded_audio:
+        raise HTTPException(status_code=502, detail="Upstream response included invalid audio")
+    try:
+        wav_bytes = base64.b64decode(encoded_audio, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="Upstream audio was not valid base64") from exc
 
     audio_bytes = _transcode(wav_bytes, target_format, speed)
     headers = {

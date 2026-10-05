@@ -15,7 +15,7 @@ seed_default_presets() {
 
   mkdir -p "${presets_dir}"
 
-  if find "${presets_dir}" -mindepth 1 -print -quit | grep -q .; then
+  if find "${presets_dir}" -mindepth 1 ! -name .gitkeep -print -quit | grep -q .; then
     return 0
   fi
 

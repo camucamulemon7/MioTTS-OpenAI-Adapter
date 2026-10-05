@@ -98,6 +98,7 @@ for relative_path in (
     "tokenizers/punkt.zip",
     "tokenizers/punkt_tab.zip",
     "taggers/averaged_perceptron_tagger.zip",
+    "taggers/averaged_perceptron_tagger_eng.zip",
     "corpora/cmudict.zip",
 ):
     zip_path = package_root / relative_path
